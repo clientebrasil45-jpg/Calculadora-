@@ -9,6 +9,8 @@ export const initialInputs: Inputs = {
   installmentAmount: 200,
   extraMonthly: 1600,
   fixedMonthlyCosts: 0,
+  withdrawalPerPhones: 0,
+  withdrawalAmount: 0,
   reinvestMode: 'all',
   fixedReinvest: 1600,
   percentReinvest: 100,

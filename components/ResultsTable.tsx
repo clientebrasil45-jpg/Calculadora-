@@ -19,10 +19,11 @@ const headerTooltips: Record<string, string> = {
     'Mês': 'O número do mês na simulação.',
     'Recebido': 'Valor total recebido das parcelas de vendas neste mês.',
     'Extra': 'Aporte mensal extra adicionado ao caixa.',
+    'Retirado': 'Valor retirado mensalmente para pagar contas baseado na quantidade de celulares vendidos.',
     'Reinvestido': 'Valor total do caixa que foi usado para comprar novos celulares neste mês.',
     'Novos Celulares': 'Quantidade de celulares comprados para revenda neste mês.',
     'Caixa Final': 'Dinheiro em caixa no final do mês após todas as operações.',
-    'Lucro Acumulado': 'Lucro total acumulado desde o início da simulação (Receita Total - Custo Total).',
+    'Lucro Acumulado': 'Lucro total acumulado desde o início da simulação (Receita Total - Custo Total - Retiradas).',
     'Crescimento (%)': 'A taxa de crescimento percentual do lucro acumulado em relação ao mês anterior.',
     'Total Celulares': 'Quantidade total de celulares comprados desde o início da simulação.',
     'Celulares Quitados': 'Número de celulares cujas todas as parcelas foram pagas.',
@@ -33,6 +34,7 @@ const headers = [
     'Mês',
     'Recebido',
     'Extra',
+    'Retirado',
     'Reinvestido',
     'Novos Celulares',
     'Caixa Final',
@@ -89,6 +91,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, formatCurre
                         <h3 className="font-bold text-lg text-teal-400 pb-2">Mês {r.month}</h3>
                         <MobileCardRow label="Recebido" value={formatCurrency(r.collected)} tooltip={headerTooltips['Recebido']} isVisible={mobileVisibleTooltip === `${r.month}-Recebido`} onToggle={() => toggleMobileTooltip(`${r.month}-Recebido`)} />
                         <MobileCardRow label="Extra" value={formatCurrency(r.extraMonthly)} tooltip={headerTooltips['Extra']} isVisible={mobileVisibleTooltip === `${r.month}-Extra`} onToggle={() => toggleMobileTooltip(`${r.month}-Extra`)} />
+                        <MobileCardRow label="Retirado" value={formatCurrency(r.withdrawal)} tooltip={headerTooltips['Retirado']} isVisible={mobileVisibleTooltip === `${r.month}-Retirado`} onToggle={() => toggleMobileTooltip(`${r.month}-Retirado`)} className="text-red-400" />
                         <MobileCardRow label="Reinvestido" value={formatCurrency(r.reinvestUsed)} tooltip={headerTooltips['Reinvestido']} isVisible={mobileVisibleTooltip === `${r.month}-Reinvestido`} onToggle={() => toggleMobileTooltip(`${r.month}-Reinvestido`)} />
                         <MobileCardRow label="Novos Celulares" value={r.phonesBoughtThisMonth} tooltip={headerTooltips['Novos Celulares']} isVisible={mobileVisibleTooltip === `${r.month}-Novos Celulares`} onToggle={() => toggleMobileTooltip(`${r.month}-Novos Celulares`)} />
                         <MobileCardRow label="Caixa Final" value={formatCurrency(r.cash)} tooltip={headerTooltips['Caixa Final']} isVisible={mobileVisibleTooltip === `${r.month}-Caixa Final`} onToggle={() => toggleMobileTooltip(`${r.month}-Caixa Final`)} />
@@ -136,6 +139,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, formatCurre
                         <td className="px-6 py-4 font-medium text-white text-center">{r.month}</td>
                         <td className="px-6 py-4 text-right">{formatCurrency(r.collected)}</td>
                         <td className="px-6 py-4 text-right">{formatCurrency(r.extraMonthly)}</td>
+                        <td className="px-6 py-4 text-right text-red-400">{formatCurrency(r.withdrawal)}</td>
                         <td className="px-6 py-4 text-right">{formatCurrency(r.reinvestUsed)}</td>
                         <td className="px-6 py-4 text-center">{r.phonesBoughtThisMonth}</td>
                         <td className="px-6 py-4 text-right font-semibold">{formatCurrency(r.cash)}</td>

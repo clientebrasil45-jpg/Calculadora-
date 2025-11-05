@@ -16,7 +16,9 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
     installmentCount,
     installmentAmount,
     extraMonthly,
-    fixedMonthlyCosts, // Added
+    fixedMonthlyCosts,
+    withdrawalPerPhones,
+    withdrawalAmount,
     reinvestMode,
     fixedReinvest,
     percentReinvest,
@@ -29,6 +31,7 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
   let totalRevenue = 0;
   let totalPhonesBought = 0;
   let totalCost = 0;
+  let totalWithdrawals = 0;
   let phoneIdCounter = 0;
   const activeSales = new Map<number, { remainingInstallments: number }>();
 
@@ -81,7 +84,15 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
     totalRevenue += collected;
     cash += collected;
     cash += extraMonthly;
-    cash -= fixedMonthlyCosts; // Apply fixed costs every month
+    cash -= fixedMonthlyCosts;
+    
+    let monthlyWithdrawal = 0;
+    if (withdrawalPerPhones > 0 && withdrawalAmount > 0) {
+      const phoneBlocks = Math.floor(totalPhonesBought / withdrawalPerPhones);
+      monthlyWithdrawal = phoneBlocks * withdrawalAmount;
+      cash -= monthlyWithdrawal;
+      totalWithdrawals += monthlyWithdrawal;
+    }
 
     let reinvestAmount = 0;
     if (reinvestMode === 'all') {
@@ -101,7 +112,7 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
       sellPhones(phonesCanBuy, m);
     }
 
-    const cumulativeProfit = totalRevenue - totalCost - (fixedMonthlyCosts * m); // Factor fixed costs into profit
+    const cumulativeProfit = totalRevenue - totalCost - (fixedMonthlyCosts * m) - totalWithdrawals;
 
     let growthRate = 'N/A';
     if (m > 1 && monthlyResults.length > 0) {
@@ -110,7 +121,7 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
         const growth = ((cumulativeProfit - previousProfit) / Math.abs(previousProfit)) * 100;
         growthRate = `${growth.toFixed(2)}%`;
       } else if (cumulativeProfit > 0) {
-        growthRate = 'N/A'; // Avoid infinity, show N/A
+        growthRate = 'N/A';
       }
     }
     
@@ -121,6 +132,7 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
       month: m,
       collected,
       extraMonthly,
+      withdrawal: monthlyWithdrawal,
       reinvestUsed: actuallySpend,
       phonesBoughtThisMonth: phonesCanBuy,
       cash,
@@ -140,7 +152,8 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
     totalPhonesBought,
     totalCost: finalTotalCost,
     totalRevenue,
-    finalProfit: totalRevenue - finalTotalCost,
+    totalWithdrawals,
+    finalProfit: totalRevenue - finalTotalCost - totalWithdrawals,
     averageTicket: totalPhonesBought > 0 ? totalRevenue / totalPhonesBought : 0,
     phonesPaidOff,
     phonesBeingPaid,
@@ -343,6 +356,7 @@ const App: React.FC = () => {
       'Mês',
       'Recebido (R$)',
       'Extra (R$)',
+      'Retirado (R$)',
       'Reinvestido (R$)',
       'Novos Celulares',
       'Caixa Final (R$)',
@@ -359,6 +373,7 @@ const App: React.FC = () => {
           r.month,
           r.collected.toFixed(2),
           r.extraMonthly.toFixed(2),
+          r.withdrawal.toFixed(2),
           r.reinvestUsed.toFixed(2),
           r.phonesBoughtThisMonth,
           r.cash.toFixed(2),
@@ -403,6 +418,10 @@ const App: React.FC = () => {
             <InputGroup id="installmentAmount" label="Valor da Parcela (R$)" type="number" value={inputs.installmentAmount} onChange={handleInputChange} tooltip="O valor de cada parcela mensal." />
             <InputGroup id="extraMonthly" label="Aporte Extra Mensal (R$)" type="number" value={inputs.extraMonthly} onChange={handleInputChange} tooltip="Dinheiro extra que você adicionará ao caixa todo mês (de outra fonte de renda, por exemplo)." />
             <InputGroup id="fixedMonthlyCosts" label="Custos Fixos Mensais (R$)" type="number" value={inputs.fixedMonthlyCosts} onChange={handleInputChange} tooltip="Despesas mensais que não estão ligadas à compra de celulares (ex: aluguel, internet, software)." />
+            <InputGroup id="withdrawalPerPhones" label="A cada X celulares vendidos" type="number" value={inputs.withdrawalPerPhones} onChange={handleInputChange} tooltip="A cada quantos celulares vendidos você retirará dinheiro para pagar contas. Use 0 para desativar." />
+            {inputs.withdrawalPerPhones > 0 && (
+              <InputGroup id="withdrawalAmount" label="Retirar por mês (R$)" type="number" value={inputs.withdrawalAmount} onChange={handleInputChange} tooltip="Quanto será retirado mensalmente por cada bloco de celulares vendidos." />
+            )}
             <InputGroup
               id="reinvestMode"
               label="Modo de Reinvestimento"
@@ -444,6 +463,9 @@ const App: React.FC = () => {
                 <SummaryCard title="Lucro Final" value={formatCurrency(summary.finalProfit)} isHighlighted />
                 <SummaryCard title="Custo Total" value={formatCurrency(summary.totalCost)} />
                 <SummaryCard title="Receita Total" value={formatCurrency(summary.totalRevenue)} />
+                {summary.totalWithdrawals > 0 && (
+                  <SummaryCard title="Total Retirado" value={formatCurrency(summary.totalWithdrawals)} />
+                )}
                 <SummaryCard title="Ticket Médio" value={formatCurrency(summary.averageTicket)} />
               </div>
             </div>
