@@ -1,0 +1,5 @@
+{
+  "name": "Reinvestment Calculator for Cell Phone Sales",
+  "description": "A comprehensive tool to simulate and analyze the growth of a cell phone sales business by reinvesting profits. Users can configure initial capital, costs, sales terms, and reinvestment strategies to project monthly cash flow, accumulated profit, and business expansion over time.",
+  "requestFramePermissions": []
+}
