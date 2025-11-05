@@ -19,12 +19,28 @@ A React-based financial simulation tool for cell phone sales businesses that use
 
 ### Key Features
 1. **Financial Simulation**: Calculate reinvestment scenarios for cell phone sales
-2. **AI Analysis**: Gemini-powered insights on business trajectory, opportunities, and risks
-3. **Interactive Chat**: Follow-up questions with AI consultant
-4. **Data Export**: CSV download of simulation results
-5. **Real-time Charts**: Visualization of growth patterns
+2. **Monthly Withdrawals**: Configure automatic withdrawals based on active installment phones (e.g., withdraw R$100/month for every 10 phones being paid)
+3. **AI Analysis**: Gemini-powered insights on business trajectory, opportunities, and risks
+4. **Interactive Chat**: Follow-up questions with AI consultant
+5. **Data Export**: CSV download of simulation results with withdrawal tracking
+6. **Real-time Charts**: Visualization of growth patterns
 
-## Recent Changes (GitHub Import Setup)
+## Recent Changes
+
+### November 5, 2025 - Withdrawal Feature
+- **New Feature**: Added configurable monthly withdrawals based on active installment phones
+  - Users can set withdrawal amount per block of active phones
+  - Example: Every 10 active phones → withdraw R$100/month
+  - Withdrawals are recalculated monthly based on current active installments
+  - Properly integrated into profit calculations and CSV exports
+- **UI Updates**: 
+  - Added "A cada X celulares ativos" input field
+  - Added "Retirar por mês (R$)" input field (conditional display)
+  - Added "Total Retirado" summary card
+  - Added "Retirado" column to monthly results table
+- **Type Safety**: Updated TypeScript types for new withdrawal fields
+
+### GitHub Import Setup
 
 ### Security Implementation
 - **Critical Fix**: Moved Gemini API key from client-side to secure backend server
@@ -93,4 +109,6 @@ A React-based financial simulation tool for cell phone sales businesses that use
 - `npm start`: Run production server
 
 ## User Preferences
-- None documented yet (first session)
+- Language: Portuguese (BR)
+- Business focus: Cell phone sales with installment payments
+- Prefers detailed monthly breakdowns with withdrawal tracking
