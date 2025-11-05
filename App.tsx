@@ -5,6 +5,7 @@ import type { SimulationInputs, MonthlyResult, SimulationSummary } from './types
 import { InputGroup } from './components/InputGroup';
 import { SummaryCard } from './components/SummaryCard';
 import { ResultsTable } from './components/ResultsTable';
+import { GrowthChart } from './components/GrowthChart';
 
 const calculateSimulation = (currentInputs: SimulationInputs) => {
   const {
@@ -101,7 +102,7 @@ const calculateSimulation = (currentInputs: SimulationInputs) => {
     const cumulativeProfit = totalRevenue - totalCost;
 
     let growthRate = 'N/A';
-    if (m > 1) {
+    if (m > 1 && monthlyResults.length > 0) {
       const previousProfit = monthlyResults[m - 2].cumulativeProfit;
       if (previousProfit !== 0) {
         const growth = ((cumulativeProfit - previousProfit) / Math.abs(previousProfit)) * 100;
@@ -281,6 +282,10 @@ const App: React.FC = () => {
                 <SummaryCard title="Ticket Médio" value={formatCurrency(summary.averageTicket)} />
               </div>
             </div>
+          )}
+
+          {results.length > 0 && (
+            <GrowthChart results={results} />
           )}
 
           {results.length > 0 && (
