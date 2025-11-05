@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { GoogleGenAI, Chat } from '@google/genai';
 import { initialInputs } from './constants.ts';
 import { InputGroup } from './components/InputGroup.tsx';
 import { SummaryCard } from './components/SummaryCard.tsx';
@@ -156,7 +155,7 @@ const App: React.FC = () => {
   const [results, setResults] = useState<MonthlyResult[]>([]);
   const [summary, setSummary] = useState<SummaryData | null>(null);
   
-  const [chat, setChat] = useState<Chat | null>(null);
+  const [chatHistory, setChatHistory] = useState<Array<{role: string, parts: Array<{text: string}>}>>([]);
   const [analysis, setAnalysis] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -170,13 +169,9 @@ const App: React.FC = () => {
     setIsAnalyzing(true);
     setAnalysis('');
     setAnalysisError(null);
-    setChat(null);
+    setChatHistory([]);
 
     try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const newChat = ai.chats.create({ model: 'gemini-2.5-flash' });
-        setChat(newChat);
-
         const prompt = `
         Você é um consultor financeiro especialista em pequenos negócios e análise de projeções de crescimento.
         Analise a seguinte simulação de um negócio de venda de celulares.
@@ -200,12 +195,46 @@ const App: React.FC = () => {
         Use uma linguagem clara, direta e encorajadora. O objetivo é fornecer insights práticos para o usuário.
         `;
         
-        const response = await newChat.sendMessageStream({ message: prompt });
+        const response = await fetch('http://localhost:3001/api/chat/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: prompt })
+        });
+
+        if (!response.ok) throw new Error('Failed to connect to backend');
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
         let text = '';
-        for await (const chunk of response) {
-            text += chunk.text;
-            setAnalysis(text);
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') break;
+                try {
+                  const parsed = JSON.parse(data);
+                  text += parsed.text;
+                  setAnalysis(text);
+                } catch (e) {
+                  // Ignore parse errors
+                }
+              }
+            }
+          }
         }
+
+        setChatHistory([
+          { role: 'user', parts: [{ text: prompt }] },
+          { role: 'model', parts: [{ text }] }
+        ]);
 
     } catch (e) {
         console.error(e);
@@ -219,20 +248,58 @@ const App: React.FC = () => {
 
   const handleFollowUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!followUp.trim() || !chat || isAnalyzing) return;
+    if (!followUp.trim() || chatHistory.length === 0 || isAnalyzing) return;
 
     setIsAnalyzing(true);
     const userMessage = `\n\n---\n\n**Usuário:** ${followUp}\n\n**Análise:**\n`;
     setAnalysis(prev => prev + userMessage);
     
     try {
-        const response = await chat.sendMessageStream({ message: followUp });
-        setFollowUp('');
+        const response = await fetch('http://localhost:3001/api/chat/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            message: followUp,
+            history: chatHistory
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to connect to backend');
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
         let text = '';
-        for await (const chunk of response) {
-            text += chunk.text;
-            setAnalysis(prev => prev.substring(0, prev.lastIndexOf(userMessage) + userMessage.length) + text);
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') break;
+                try {
+                  const parsed = JSON.parse(data);
+                  text += parsed.text;
+                  setAnalysis(prev => prev.substring(0, prev.lastIndexOf(userMessage) + userMessage.length) + text);
+                } catch (e) {
+                  // Ignore parse errors
+                }
+              }
+            }
+          }
         }
+
+        setChatHistory(prev => [
+          ...prev,
+          { role: 'user', parts: [{ text: followUp }] },
+          { role: 'model', parts: [{ text }] }
+        ]);
+        setFollowUp('');
     } catch (e) {
         console.error(e);
         const errorMsg = "\n\n---\nOcorreu um erro ao processar sua pergunta.";
@@ -253,7 +320,7 @@ const App: React.FC = () => {
     } else {
         setAnalysis('');
         setAnalysisError(null);
-        setChat(null);
+        setChatHistory([]);
     }
   };
   
