@@ -25,6 +25,8 @@ export interface MonthlyResult {
   cumulativeProfit: number;
   totalPhonesBought: number;
   growthRate: string;
+  phonesPaidOff: number;
+  phonesBeingPaid: number;
 }
 
 export interface SimulationSummary {
@@ -33,4 +35,6 @@ export interface SimulationSummary {
   totalRevenue: number;
   finalProfit: number;
   averageTicket: number;
+  phonesPaidOff: number;
+  phonesBeingPaid: number;
 }

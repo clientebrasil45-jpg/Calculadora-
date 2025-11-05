@@ -16,7 +16,9 @@ const headerTooltips: Record<string, string> = {
     'Caixa Final': 'Dinheiro em caixa no final do mês após todas as operações.',
     'Lucro Acumulado': 'Lucro total acumulado desde o início da simulação (Receita Total - Custo Total).',
     'Crescimento (%)': 'A taxa de crescimento percentual do lucro acumulado em relação ao mês anterior.',
-    'Total Celulares': 'Quantidade total de celulares comprados desde o início da simulação.'
+    'Total Celulares': 'Quantidade total de celulares comprados desde o início da simulação.',
+    'Celulares Quitados': 'Número de celulares cujas todas as parcelas foram pagas.',
+    'Pagamentos Ativos': 'Número de celulares que ainda possuem parcelas a serem pagas.',
 };
 
 const headers = [
@@ -29,6 +31,8 @@ const headers = [
     'Lucro Acumulado',
     'Crescimento (%)',
     'Total Celulares',
+    'Celulares Quitados',
+    'Pagamentos Ativos',
 ];
 
 const InfoIcon = () => (
@@ -83,6 +87,8 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, formatCurre
                         <MobileCardRow label="Lucro Acumulado" value={formatCurrency(r.cumulativeProfit)} tooltip={headerTooltips['Lucro Acumulado']} isVisible={mobileVisibleTooltip === `${r.month}-Lucro Acumulado`} onToggle={() => toggleMobileTooltip(`${r.month}-Lucro Acumulado`)} className="text-green-400" />
                         <MobileCardRow label="Crescimento (%)" value={r.growthRate} tooltip={headerTooltips['Crescimento (%)']} isVisible={mobileVisibleTooltip === `${r.month}-Crescimento (%)`} onToggle={() => toggleMobileTooltip(`${r.month}-Crescimento (%)`)} className={growthColor} />
                         <MobileCardRow label="Total Celulares" value={r.totalPhonesBought} tooltip={headerTooltips['Total Celulares']} isVisible={mobileVisibleTooltip === `${r.month}-Total Celulares`} onToggle={() => toggleMobileTooltip(`${r.month}-Total Celulares`)} />
+                        <MobileCardRow label="Celulares Quitados" value={r.phonesPaidOff} tooltip={headerTooltips['Celulares Quitados']} isVisible={mobileVisibleTooltip === `${r.month}-Celulares Quitados`} onToggle={() => toggleMobileTooltip(`${r.month}-Celulares Quitados`)} />
+                        <MobileCardRow label="Pagamentos Ativos" value={r.phonesBeingPaid} tooltip={headerTooltips['Pagamentos Ativos']} isVisible={mobileVisibleTooltip === `${r.month}-Pagamentos Ativos`} onToggle={() => toggleMobileTooltip(`${r.month}-Pagamentos Ativos`)} />
                     </div>
                  );
             })}
@@ -128,6 +134,8 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, formatCurre
                         <td className="px-6 py-4 text-right font-semibold text-green-400">{formatCurrency(r.cumulativeProfit)}</td>
                         <td className={`px-6 py-4 text-center font-medium ${growthColor}`}>{r.growthRate}</td>
                         <td className="px-6 py-4 text-center">{r.totalPhonesBought}</td>
+                        <td className="px-6 py-4 text-center">{r.phonesPaidOff}</td>
+                        <td className="px-6 py-4 text-center">{r.phonesBeingPaid}</td>
                     </tr>
                   );
                 })}

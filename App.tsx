@@ -22,19 +22,28 @@ const calculateSimulation = (currentInputs: SimulationInputs) => {
   } = currentInputs;
 
   let cash = initialCapital;
-  const receivables: { monthDue: number; amount: number }[] = [];
+  const receivables: { monthDue: number; amount: number; phoneId: number }[] = [];
   const monthlyResults: MonthlyResult[] = [];
   let totalRevenue = 0;
   let totalPhonesBought = 0;
   let totalCost = 0;
+  let phoneIdCounter = 0;
+  const activeSales = new Map<number, { remainingInstallments: number }>();
 
   const sellPhones = (count: number, currentMonth: number) => {
     for (let i = 0; i < count; i++) {
+      phoneIdCounter++;
+      const currentPhoneId = phoneIdCounter;
       cash += entryAmount;
       totalRevenue += entryAmount;
-      for (let j = 1; j <= installmentCount; j++) {
-        receivables.push({ monthDue: currentMonth + j, amount: installmentAmount });
+
+      if (installmentCount > 0) {
+        activeSales.set(currentPhoneId, { remainingInstallments: installmentCount });
+        for (let j = 1; j <= installmentCount; j++) {
+          receivables.push({ monthDue: currentMonth + j, amount: installmentAmount, phoneId: currentPhoneId });
+        }
       }
+      
       totalPhonesBought += 1;
     }
   };
@@ -55,6 +64,15 @@ const calculateSimulation = (currentInputs: SimulationInputs) => {
     for (let i = receivables.length - 1; i >= 0; i--) {
       if (receivables[i].monthDue === m) {
         collected += receivables[i].amount;
+        
+        const sale = activeSales.get(receivables[i].phoneId);
+        if (sale) {
+            sale.remainingInstallments--;
+            if (sale.remainingInstallments <= 0) {
+                activeSales.delete(receivables[i].phoneId);
+            }
+        }
+        
         receivables.splice(i, 1);
       }
     }
@@ -93,6 +111,9 @@ const calculateSimulation = (currentInputs: SimulationInputs) => {
       }
     }
     
+    const phonesBeingPaid = activeSales.size;
+    const phonesPaidOff = totalPhonesBought - phonesBeingPaid;
+
     monthlyResults.push({
       month: m,
       collected,
@@ -103,15 +124,22 @@ const calculateSimulation = (currentInputs: SimulationInputs) => {
       cumulativeProfit,
       totalPhonesBought,
       growthRate,
+      phonesPaidOff,
+      phonesBeingPaid,
     });
   }
   
+  const phonesBeingPaid = activeSales.size;
+  const phonesPaidOff = totalPhonesBought - phonesBeingPaid;
+
   const summaryData = {
     totalPhonesBought,
     totalCost,
     totalRevenue,
     finalProfit: totalRevenue - totalCost,
     averageTicket: totalPhonesBought > 0 ? totalRevenue / totalPhonesBought : 0,
+    phonesPaidOff,
+    phonesBeingPaid,
   };
 
   return { monthlyResults, summaryData };
@@ -158,6 +186,8 @@ const App: React.FC = () => {
       'Lucro Acumulado (R$)',
       'Crescimento (%)',
       'Total Celulares',
+      'Celulares Quitados',
+      'Pagamentos Ativos',
     ];
     const csvContent = [
       headers.join(';'),
@@ -172,6 +202,8 @@ const App: React.FC = () => {
           r.cumulativeProfit.toFixed(2),
           r.growthRate.replace('%', ''),
           r.totalPhonesBought,
+          r.phonesPaidOff,
+          r.phonesBeingPaid,
         ].join(';')
       ),
     ].join('\n');
@@ -239,12 +271,14 @@ const App: React.FC = () => {
           {summary && (
             <div>
               <h2 className="text-2xl font-semibold text-white mb-6">Resumo da Simulação</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <SummaryCard title="Celulares Vendidos" value={summary.totalPhonesBought.toString()} />
+                <SummaryCard title="Celulares Quitados" value={summary.phonesPaidOff.toString()} />
+                <SummaryCard title="Pagamentos Ativos" value={summary.phonesBeingPaid.toString()} />
+                <SummaryCard title="Lucro Final" value={formatCurrency(summary.finalProfit)} isHighlighted />
                 <SummaryCard title="Custo Total" value={formatCurrency(summary.totalCost)} />
                 <SummaryCard title="Receita Total" value={formatCurrency(summary.totalRevenue)} />
                 <SummaryCard title="Ticket Médio" value={formatCurrency(summary.averageTicket)} />
-                <SummaryCard title="Lucro Final" value={formatCurrency(summary.finalProfit)} isHighlighted />
               </div>
             </div>
           )}
