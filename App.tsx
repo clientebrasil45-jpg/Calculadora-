@@ -86,9 +86,10 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
     cash += extraMonthly;
     cash -= fixedMonthlyCosts;
     
+    const phonesBeingPaidNow = activeSales.size;
     let monthlyWithdrawal = 0;
-    if (withdrawalPerPhones > 0 && withdrawalAmount > 0) {
-      const phoneBlocks = Math.floor(totalPhonesBought / withdrawalPerPhones);
+    if (withdrawalPerPhones > 0 && withdrawalAmount > 0 && phonesBeingPaidNow > 0) {
+      const phoneBlocks = Math.floor(phonesBeingPaidNow / withdrawalPerPhones);
       monthlyWithdrawal = phoneBlocks * withdrawalAmount;
       cash -= monthlyWithdrawal;
       totalWithdrawals += monthlyWithdrawal;
@@ -418,9 +419,9 @@ const App: React.FC = () => {
             <InputGroup id="installmentAmount" label="Valor da Parcela (R$)" type="number" value={inputs.installmentAmount} onChange={handleInputChange} tooltip="O valor de cada parcela mensal." />
             <InputGroup id="extraMonthly" label="Aporte Extra Mensal (R$)" type="number" value={inputs.extraMonthly} onChange={handleInputChange} tooltip="Dinheiro extra que você adicionará ao caixa todo mês (de outra fonte de renda, por exemplo)." />
             <InputGroup id="fixedMonthlyCosts" label="Custos Fixos Mensais (R$)" type="number" value={inputs.fixedMonthlyCosts} onChange={handleInputChange} tooltip="Despesas mensais que não estão ligadas à compra de celulares (ex: aluguel, internet, software)." />
-            <InputGroup id="withdrawalPerPhones" label="A cada X celulares vendidos" type="number" value={inputs.withdrawalPerPhones} onChange={handleInputChange} tooltip="A cada quantos celulares vendidos você retirará dinheiro para pagar contas. Use 0 para desativar." />
+            <InputGroup id="withdrawalPerPhones" label="A cada X celulares ativos" type="number" value={inputs.withdrawalPerPhones} onChange={handleInputChange} tooltip="A cada quantos celulares que estão sendo pagos (parcelas ativas) você retirará dinheiro mensalmente. Use 0 para desativar." />
             {inputs.withdrawalPerPhones > 0 && (
-              <InputGroup id="withdrawalAmount" label="Retirar por mês (R$)" type="number" value={inputs.withdrawalAmount} onChange={handleInputChange} tooltip="Quanto será retirado mensalmente por cada bloco de celulares vendidos." />
+              <InputGroup id="withdrawalAmount" label="Retirar por mês (R$)" type="number" value={inputs.withdrawalAmount} onChange={handleInputChange} tooltip="Quanto será retirado mensalmente por cada bloco de celulares ativos. Exemplo: a cada 10 celulares ativos, retirar R$ 100." />
             )}
             <InputGroup
               id="reinvestMode"

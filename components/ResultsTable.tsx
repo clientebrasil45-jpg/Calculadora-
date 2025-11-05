@@ -19,7 +19,7 @@ const headerTooltips: Record<string, string> = {
     'Mês': 'O número do mês na simulação.',
     'Recebido': 'Valor total recebido das parcelas de vendas neste mês.',
     'Extra': 'Aporte mensal extra adicionado ao caixa.',
-    'Retirado': 'Valor retirado mensalmente para pagar contas baseado na quantidade de celulares vendidos.',
+    'Retirado': 'Valor retirado mensalmente para pagar contas baseado na quantidade de celulares ativos (com parcelas sendo pagas).',
     'Reinvestido': 'Valor total do caixa que foi usado para comprar novos celulares neste mês.',
     'Novos Celulares': 'Quantidade de celulares comprados para revenda neste mês.',
     'Caixa Final': 'Dinheiro em caixa no final do mês após todas as operações.',
