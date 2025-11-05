@@ -1,13 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
-import { initialInputs } from './constants';
-import type { SimulationInputs, MonthlyResult, SimulationSummary } from './types';
-import { InputGroup } from './components/InputGroup';
-import { SummaryCard } from './components/SummaryCard';
-import { ResultsTable } from './components/ResultsTable';
-import { GrowthChart } from './components/GrowthChart';
+import { GoogleGenAI, Chat } from '@google/genai';
+import { initialInputs } from './constants.ts';
+import { InputGroup } from './components/InputGroup.tsx';
+import { SummaryCard } from './components/SummaryCard.tsx';
+import { ResultsTable } from './components/ResultsTable.tsx';
+import { GrowthChart } from './components/GrowthChart.tsx';
+import { GeminiAnalysis } from './components/GeminiAnalysis.tsx';
+import type { Inputs, MonthlyResult, SummaryData } from './types.ts';
 
-const calculateSimulation = (currentInputs: SimulationInputs) => {
+const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyResult[], summaryData: SummaryData } => {
   const {
     initialCapital,
     costPerPhone,
@@ -16,6 +17,7 @@ const calculateSimulation = (currentInputs: SimulationInputs) => {
     installmentCount,
     installmentAmount,
     extraMonthly,
+    fixedMonthlyCosts, // Added
     reinvestMode,
     fixedReinvest,
     percentReinvest,
@@ -23,7 +25,7 @@ const calculateSimulation = (currentInputs: SimulationInputs) => {
   } = currentInputs;
 
   let cash = initialCapital;
-  const receivables: { monthDue: number; amount: number; phoneId: number }[] = [];
+  const receivables: { monthDue: number, amount: number, phoneId: number }[] = [];
   const monthlyResults: MonthlyResult[] = [];
   let totalRevenue = 0;
   let totalPhonesBought = 0;
@@ -80,6 +82,7 @@ const calculateSimulation = (currentInputs: SimulationInputs) => {
     totalRevenue += collected;
     cash += collected;
     cash += extraMonthly;
+    cash -= fixedMonthlyCosts; // Apply fixed costs every month
 
     let reinvestAmount = 0;
     if (reinvestMode === 'all') {
@@ -99,7 +102,7 @@ const calculateSimulation = (currentInputs: SimulationInputs) => {
       sellPhones(phonesCanBuy, m);
     }
 
-    const cumulativeProfit = totalRevenue - totalCost;
+    const cumulativeProfit = totalRevenue - totalCost - (fixedMonthlyCosts * m); // Factor fixed costs into profit
 
     let growthRate = 'N/A';
     if (m > 1 && monthlyResults.length > 0) {
@@ -132,12 +135,13 @@ const calculateSimulation = (currentInputs: SimulationInputs) => {
   
   const phonesBeingPaid = activeSales.size;
   const phonesPaidOff = totalPhonesBought - phonesBeingPaid;
+  const finalTotalCost = totalCost + (fixedMonthlyCosts * months);
 
   const summaryData = {
     totalPhonesBought,
-    totalCost,
+    totalCost: finalTotalCost,
     totalRevenue,
-    finalProfit: totalRevenue - totalCost,
+    finalProfit: totalRevenue - finalTotalCost,
     averageTicket: totalPhonesBought > 0 ? totalRevenue / totalPhonesBought : 0,
     phonesPaidOff,
     phonesBeingPaid,
@@ -148,18 +152,109 @@ const calculateSimulation = (currentInputs: SimulationInputs) => {
 
 
 const App: React.FC = () => {
-  const [inputs, setInputs] = useState<SimulationInputs>(initialInputs);
+  const [inputs, setInputs] = useState<Inputs>(initialInputs);
   const [results, setResults] = useState<MonthlyResult[]>([]);
-  const [summary, setSummary] = useState<SimulationSummary | null>(null);
+  const [summary, setSummary] = useState<SummaryData | null>(null);
+  
+  const [chat, setChat] = useState<Chat | null>(null);
+  const [analysis, setAnalysis] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [followUp, setFollowUp] = useState('');
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number): string => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
   
+  const startNewChat = async (currentInputs: Inputs, summaryData: SummaryData) => {
+    setIsAnalyzing(true);
+    setAnalysis('');
+    setAnalysisError(null);
+    setChat(null);
+
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const newChat = ai.chats.create({ model: 'gemini-2.5-flash' });
+        setChat(newChat);
+
+        const prompt = `
+        Você é um consultor financeiro especialista em pequenos negócios e análise de projeções de crescimento.
+        Analise a seguinte simulação de um negócio de venda de celulares.
+
+        **Dados da Simulação:**
+        - Configuração Inicial: ${JSON.stringify(currentInputs, null, 2)}
+        - Resumo Final da Simulação (${currentInputs.months} meses): ${JSON.stringify(summaryData, null, 2)}
+
+        **Sua Tarefa:**
+        Forneça uma análise concisa em 3 seções, usando texto simples com quebras de linha para formatação. Não use markdown como **negrito** ou *itálico*.
+
+        **1. Comportamento e Trajetória:**
+        Descreva a curva de crescimento. O crescimento é rápido, lento, constante? Existem pontos de virada ou estagnação evidentes?
+
+        **2. Pontos Fortes e Oportunidades:**
+        Identifique os principais motores de crescimento na simulação (ex: aporte mensal alto, boa margem). Sugira 1 ou 2 oportunidades claras de otimização (ex: "Reduzir o custo por celular em X% poderia acelerar o lucro em Y%").
+
+        **3. Riscos e Alertas:**
+        Aponte as principais vulnerabilidades do modelo de negócio simulado (ex: "A alta dependência do aporte mensal é um risco. Se ele falhar, o crescimento pode estagnar.").
+
+        Use uma linguagem clara, direta e encorajadora. O objetivo é fornecer insights práticos para o usuário.
+        `;
+        
+        const response = await newChat.sendMessageStream({ message: prompt });
+        let text = '';
+        for await (const chunk of response) {
+            text += chunk.text;
+            setAnalysis(text);
+        }
+
+    } catch (e) {
+        console.error(e);
+        const errorMsg = "Não foi possível conectar à API de IA. Verifique sua conexão ou tente novamente mais tarde.";
+        setAnalysisError(errorMsg);
+        setAnalysis(errorMsg);
+    } finally {
+        setIsAnalyzing(false);
+    }
+  };
+
+  const handleFollowUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!followUp.trim() || !chat || isAnalyzing) return;
+
+    setIsAnalyzing(true);
+    const userMessage = `\n\n---\n\n**Usuário:** ${followUp}\n\n**Análise:**\n`;
+    setAnalysis(prev => prev + userMessage);
+    
+    try {
+        const response = await chat.sendMessageStream({ message: followUp });
+        setFollowUp('');
+        let text = '';
+        for await (const chunk of response) {
+            text += chunk.text;
+            setAnalysis(prev => prev.substring(0, prev.lastIndexOf(userMessage) + userMessage.length) + text);
+        }
+    } catch (e) {
+        console.error(e);
+        const errorMsg = "\n\n---\nOcorreu um erro ao processar sua pergunta.";
+        setAnalysis(prev => prev + errorMsg);
+        setAnalysisError("Ocorreu um erro ao processar sua pergunta.");
+    } finally {
+        setIsAnalyzing(false);
+    }
+  };
+
   const handleSimulate = () => {
     const { monthlyResults, summaryData } = calculateSimulation(inputs);
     setResults(monthlyResults);
     setSummary(summaryData);
+    
+    if (monthlyResults.length > 0 && summaryData.totalPhonesBought > 0) {
+      startNewChat(inputs, summaryData);
+    } else {
+        setAnalysis('');
+        setAnalysisError(null);
+        setChat(null);
+    }
   };
   
   useEffect(() => {
@@ -173,7 +268,7 @@ const App: React.FC = () => {
     setInputs(prev => ({
       ...prev,
       [id]: type === 'number' ? (isNaN(numValue) ? 0 : numValue) : value,
-    }));
+    } as Inputs));
   };
 
   const downloadCSV = () => {
@@ -233,13 +328,14 @@ const App: React.FC = () => {
         <aside className="lg:col-span-1 bg-slate-800/50 p-6 rounded-2xl shadow-2xl h-fit lg:sticky top-8">
           <h2 className="text-2xl font-semibold text-white mb-6 border-b border-slate-700 pb-4">Configurações</h2>
           <div className="space-y-4">
-            <InputGroup id="initialCapital" label="Capital Inicial (R$)" type="number" value={inputs.initialCapital} onChange={handleInputChange} />
-            <InputGroup id="costPerPhone" label="Custo por Celular (R$)" type="number" value={inputs.costPerPhone} onChange={handleInputChange} />
-            <InputGroup id="initialPhones" label="Celulares Iniciais (un)" type="number" value={inputs.initialPhones} onChange={handleInputChange} />
-            <InputGroup id="entryAmount" label="Valor de Entrada (R$)" type="number" value={inputs.entryAmount} onChange={handleInputChange} />
-            <InputGroup id="installmentCount" label="Nº de Parcelas" type="number" value={inputs.installmentCount} onChange={handleInputChange} />
-            <InputGroup id="installmentAmount" label="Valor da Parcela (R$)" type="number" value={inputs.installmentAmount} onChange={handleInputChange} />
-            <InputGroup id="extraMonthly" label="Aporte Extra Mensal (R$)" type="number" value={inputs.extraMonthly} onChange={handleInputChange} />
+            <InputGroup id="initialCapital" label="Capital Inicial (R$)" type="number" value={inputs.initialCapital} onChange={handleInputChange} tooltip="O dinheiro que você tem para começar o negócio." />
+            <InputGroup id="costPerPhone" label="Custo por Celular (R$)" type="number" value={inputs.costPerPhone} onChange={handleInputChange} tooltip="O custo para adquirir cada celular que você vai vender." />
+            <InputGroup id="initialPhones" label="Celulares Iniciais (un)" type="number" value={inputs.initialPhones} onChange={handleInputChange} tooltip="Quantos celulares você comprará com o capital inicial." />
+            <InputGroup id="entryAmount" label="Valor de Entrada (R$)" type="number" value={inputs.entryAmount} onChange={handleInputChange} tooltip="O valor que o cliente paga no ato da compra." />
+            <InputGroup id="installmentCount" label="Nº de Parcelas" type="number" value={inputs.installmentCount} onChange={handleInputChange} tooltip="Em quantas parcelas o restante será pago." />
+            <InputGroup id="installmentAmount" label="Valor da Parcela (R$)" type="number" value={inputs.installmentAmount} onChange={handleInputChange} tooltip="O valor de cada parcela mensal." />
+            <InputGroup id="extraMonthly" label="Aporte Extra Mensal (R$)" type="number" value={inputs.extraMonthly} onChange={handleInputChange} tooltip="Dinheiro extra que você adicionará ao caixa todo mês (de outra fonte de renda, por exemplo)." />
+            <InputGroup id="fixedMonthlyCosts" label="Custos Fixos Mensais (R$)" type="number" value={inputs.fixedMonthlyCosts} onChange={handleInputChange} tooltip="Despesas mensais que não estão ligadas à compra de celulares (ex: aluguel, internet, software)." />
             <InputGroup
               id="reinvestMode"
               label="Modo de Reinvestimento"
@@ -251,20 +347,22 @@ const App: React.FC = () => {
                 { value: 'fixed', label: 'Valor Fixo' },
                 { value: 'percent', label: 'Percentual' },
               ]}
+              tooltip="Como o dinheiro em caixa será usado para comprar mais celulares."
             />
             {inputs.reinvestMode === 'fixed' && (
-              <InputGroup id="fixedReinvest" label="Valor Fixo a Reinvestir (R$)" type="number" value={inputs.fixedReinvest} onChange={handleInputChange} />
+              <InputGroup id="fixedReinvest" label="Valor Fixo a Reinvestir (R$)" type="number" value={inputs.fixedReinvest} onChange={handleInputChange} tooltip="A quantia exata em R$ a ser reinvestida todo mês." />
             )}
             {inputs.reinvestMode === 'percent' && (
-              <InputGroup id="percentReinvest" label="Percentual a Reinvestir (%)" type="number" value={inputs.percentReinvest} onChange={handleInputChange} />
+              <InputGroup id="percentReinvest" label="Percentual a Reinvestir (%)" type="number" value={inputs.percentReinvest} onChange={handleInputChange} tooltip="A porcentagem do caixa a ser reinvestida todo mês." />
             )}
-            <InputGroup id="months" label="Meses para Simular" type="number" value={inputs.months} onChange={handleInputChange} />
+            <InputGroup id="months" label="Meses para Simular" type="number" value={inputs.months} onChange={handleInputChange} tooltip="Por quanto tempo a simulação deve rodar." />
           </div>
           <button
             onClick={handleSimulate}
-            className="w-full mt-6 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105"
+            className="w-full mt-6 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:bg-slate-600 disabled:cursor-not-allowed"
+            disabled={isAnalyzing}
           >
-            Simular
+            {isAnalyzing ? 'Analisando...' : 'Simular e Analisar'}
           </button>
         </aside>
 
@@ -283,6 +381,15 @@ const App: React.FC = () => {
               </div>
             </div>
           )}
+
+          <GeminiAnalysis 
+            analysis={analysis} 
+            isAnalyzing={isAnalyzing} 
+            error={analysisError} 
+            followUp={followUp}
+            onFollowUpChange={(e) => setFollowUp(e.target.value)}
+            onSendFollowUp={handleFollowUp}
+          />
 
           {results.length > 0 && (
             <GrowthChart results={results} />

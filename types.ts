@@ -1,7 +1,4 @@
-
-export type ReinvestMode = 'all' | 'fixed' | 'percent';
-
-export interface SimulationInputs {
+export interface Inputs {
   initialCapital: number;
   costPerPhone: number;
   initialPhones: number;
@@ -9,7 +6,8 @@ export interface SimulationInputs {
   installmentCount: number;
   installmentAmount: number;
   extraMonthly: number;
-  reinvestMode: ReinvestMode;
+  fixedMonthlyCosts: number;
+  reinvestMode: 'all' | 'fixed' | 'percent';
   fixedReinvest: number;
   percentReinvest: number;
   months: number;
@@ -29,7 +27,7 @@ export interface MonthlyResult {
   phonesBeingPaid: number;
 }
 
-export interface SimulationSummary {
+export interface SummaryData {
   totalPhonesBought: number;
   totalCost: number;
   totalRevenue: number;

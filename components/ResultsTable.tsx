@@ -1,10 +1,18 @@
-
 import React, { useState } from 'react';
-import type { MonthlyResult } from '../types';
+import type { MonthlyResult } from '../types.ts';
+
+interface MobileCardRowProps {
+    label: string;
+    value: string | number;
+    tooltip: string;
+    isVisible: boolean;
+    onToggle: () => void;
+    className?: string;
+}
 
 interface ResultsTableProps {
-  results: MonthlyResult[];
-  formatCurrency: (value: number) => string;
+    results: MonthlyResult[];
+    formatCurrency: (value: number) => string;
 }
 
 const headerTooltips: Record<string, string> = {
@@ -35,13 +43,13 @@ const headers = [
     'Pagamentos Ativos',
 ];
 
-const InfoIcon = () => (
+const InfoIcon: React.FC = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline-block ml-1 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
 );
 
-const MobileCardRow: React.FC<{ label: string; value: React.ReactNode; tooltip: string; isVisible: boolean; onToggle: () => void; className?: string }> = ({ label, value, tooltip, isVisible, onToggle, className = '' }) => (
+const MobileCardRow: React.FC<MobileCardRowProps> = ({ label, value, tooltip, isVisible, onToggle, className = '' }) => (
     <div className="py-2">
         <div className="flex justify-between items-center cursor-pointer" onClick={onToggle} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onToggle()}>
             <span className="text-slate-400">{label} <InfoIcon /></span>

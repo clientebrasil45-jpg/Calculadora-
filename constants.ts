@@ -1,7 +1,6 @@
+import type { Inputs } from './types.ts';
 
-import type { SimulationInputs } from './types';
-
-export const initialInputs: SimulationInputs = {
+export const initialInputs: Inputs = {
   initialCapital: 1600,
   costPerPhone: 600,
   initialPhones: 2,
@@ -9,6 +8,7 @@ export const initialInputs: SimulationInputs = {
   installmentCount: 5,
   installmentAmount: 200,
   extraMonthly: 1600,
+  fixedMonthlyCosts: 0,
   reinvestMode: 'all',
   fixedReinvest: 1600,
   percentReinvest: 100,

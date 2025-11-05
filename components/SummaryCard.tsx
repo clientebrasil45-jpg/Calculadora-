@@ -1,10 +1,9 @@
-
 import React from 'react';
 
 interface SummaryCardProps {
-  title: string;
-  value: string;
-  isHighlighted?: boolean;
+    title: string;
+    value: string;
+    isHighlighted?: boolean;
 }
 
 export const SummaryCard: React.FC<SummaryCardProps> = ({ title, value, isHighlighted = false }) => {

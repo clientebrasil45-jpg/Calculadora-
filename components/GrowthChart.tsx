@@ -1,31 +1,28 @@
-
 import React, { useState, useMemo } from 'react';
-import type { MonthlyResult } from '../types';
+import type { MonthlyResult } from '../types.ts';
+
+interface GrowthChartProps {
+    results: MonthlyResult[];
+}
 
 type MetricKey = 'cumulativeProfit' | 'cash' | 'totalPhonesBought';
 
-interface MetricConfig {
-  label: string;
-  color: string;
-  isCurrency: boolean;
-}
-
-const metrics: Record<MetricKey, MetricConfig> = {
+const metrics: Record<MetricKey, { label: string; color: string; isCurrency: boolean }> = {
   cumulativeProfit: { label: 'Lucro Acumulado', color: '#2dd4bf', isCurrency: true },
   cash: { label: 'Caixa Final', color: '#64748b', isCurrency: true },
   totalPhonesBought: { label: 'Total de Celulares', color: '#f87171', isCurrency: false },
 };
 
-const formatCurrency = (value: number) => {
+const formatCurrency = (value: number): string => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
-const formatNumber = (value: number) => {
+const formatNumber = (value: number): string => {
     return Math.round(value).toString();
 };
 
 
-export const GrowthChart: React.FC<{ results: MonthlyResult[] }> = ({ results }) => {
+export const GrowthChart: React.FC<GrowthChartProps> = ({ results }) => {
   const [activeMetric, setActiveMetric] = useState<MetricKey>('cumulativeProfit');
 
   const chartData = useMemo(() => {
