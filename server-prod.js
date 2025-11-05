@@ -1,9 +1,10 @@
 import express from 'express';
-import cors from 'cors';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const app = express();
-const PORT = 3001;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Validate API key is present
 if (!process.env.GEMINI_API_KEY) {
@@ -12,11 +13,14 @@ if (!process.env.GEMINI_API_KEY) {
   process.exit(1);
 }
 
-app.use(cors());
+const app = express();
+const PORT = 5000;
+
 app.use(express.json());
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// API routes
 app.post('/api/chat/create', async (req, res) => {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
@@ -69,6 +73,14 @@ app.post('/api/chat/send', async (req, res) => {
   }
 });
 
+// Serve static files from the dist directory
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Handle client-side routing - send all other requests to index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Backend server running on http://0.0.0.0:${PORT}`);
+  console.log(`Production server running on http://0.0.0.0:${PORT}`);
 });

@@ -4,11 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node server.js & vite",
+    "dev": "bash start.sh",
     "backend": "node server.js",
     "frontend": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node server-prod.js"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

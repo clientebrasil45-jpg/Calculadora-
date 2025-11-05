@@ -195,7 +195,7 @@ const App: React.FC = () => {
         Use uma linguagem clara, direta e encorajadora. O objetivo é fornecer insights práticos para o usuário.
         `;
         
-        const response = await fetch('http://localhost:3001/api/chat/create', {
+        const response = await fetch('/api/chat/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: prompt })
@@ -255,7 +255,7 @@ const App: React.FC = () => {
     setAnalysis(prev => prev + userMessage);
     
     try {
-        const response = await fetch('http://localhost:3001/api/chat/send', {
+        const response = await fetch('/api/chat/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
