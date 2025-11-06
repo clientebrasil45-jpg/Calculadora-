@@ -27,6 +27,24 @@ A React-based financial simulation tool for cell phone sales businesses that use
 
 ## Recent Changes
 
+### November 6, 2025 - Intelligent Suggestion System
+- **New Feature**: AI-powered automatic optimization suggestions
+  - Gemini can now analyze the simulation and suggest optimized values
+  - Users can ask "como posso melhorar" and receive actionable suggestions
+  - Suggestions are parsed from AI responses and displayed in a beautiful UI
+  - One-click "Apply Suggestions" button to automatically update all recommended values
+  - Preview of suggested values before applying (shows which fields will change)
+  - Suggestions reset automatically when no longer relevant
+- **UX Improvements**:
+  - Input fields now allow complete clearing without auto-filling to 0
+  - Better number input handling for easier editing
+  - Enhanced withdrawal settings visibility in Summary cards
+- **Technical Implementation**:
+  - JSON-based suggestion format with markers (SUGESTAO_OTIMIZADA_INICIO/FIM)
+  - Robust parser with error handling
+  - State management for suggested values
+  - Automatic re-simulation after applying suggestions
+
 ### November 5, 2025 - Withdrawal Feature
 - **New Feature**: Added configurable monthly withdrawals based on active installment phones
   - Users can set withdrawal amount per block of active phones
@@ -37,6 +55,7 @@ A React-based financial simulation tool for cell phone sales businesses that use
   - Added "A cada X celulares ativos" input field
   - Added "Retirar por mês (R$)" input field (conditional display)
   - Added "Total Retirado" summary card
+  - Added "Regra de Retirada" card showing withdrawal configuration
   - Added "Retirado" column to monthly results table
 - **Type Safety**: Updated TypeScript types for new withdrawal fields
 
