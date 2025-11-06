@@ -197,9 +197,46 @@ const App: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [followUp, setFollowUp] = useState('');
+  const [suggestedInputs, setSuggestedInputs] = useState<Partial<Inputs> | null>(null);
+  const [showSuggestion, setShowSuggestion] = useState(false);
 
   const formatCurrency = (value: number): string => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  const parseSuggestions = (text: string) => {
+    const startMarker = 'SUGESTAO_OTIMIZADA_INICIO';
+    const endMarker = 'SUGESTAO_OTIMIZADA_FIM';
+    
+    if (text.includes(startMarker) && text.includes(endMarker)) {
+      const start = text.indexOf(startMarker) + startMarker.length;
+      const end = text.indexOf(endMarker);
+      const jsonStr = text.substring(start, end).trim();
+      
+      try {
+        const suggestion = JSON.parse(jsonStr);
+        return suggestion;
+      } catch (e) {
+        console.error('Erro ao parsear sugestão:', e);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const applySuggestions = () => {
+    if (suggestedInputs) {
+      setInputs(prev => ({
+        ...prev,
+        ...suggestedInputs
+      }));
+      setShowSuggestion(false);
+      setSuggestedInputs(null);
+      
+      setTimeout(() => {
+        handleSimulate();
+      }, 100);
+    }
   };
   
   const startNewChat = async (currentInputs: Inputs, summaryData: SummaryData) => {
@@ -233,6 +270,25 @@ const App: React.FC = () => {
         **3. Riscos e Alertas:**
         Aponte as principais vulnerabilidades do modelo de negócio simulado (ex: "A alta dependência do aporte mensal é um risco. Se ele falhar, o crescimento pode estagnar.").${withdrawalInfo ? ' Avalie se as retiradas mensais estão prejudicando o potencial de crescimento.' : ''}
 
+        **IMPORTANTE - SUGESTÕES INTELIGENTES:**
+        Se o usuário perguntar "como posso melhorar" ou pedir otimizações, você DEVE incluir um bloco JSON com valores sugeridos otimizados.
+        O formato deve ser exatamente assim (substitua apenas os valores, mantendo a estrutura):
+        
+        SUGESTAO_OTIMIZADA_INICIO
+        {
+          "explicacao": "Explique brevemente por que esses valores são melhores",
+          "valores": {
+            "costPerPhone": 500,
+            "entryAmount": 150,
+            "installmentAmount": 250,
+            "extraMonthly": 2000,
+            "withdrawalPerPhones": 15
+          }
+        }
+        SUGESTAO_OTIMIZADA_FIM
+
+        Só inclua o bloco JSON se o usuário pedir sugestões de melhoria. Inclua apenas os campos que você recomenda mudar.
+        
         Use uma linguagem clara, direta e encorajadora. O objetivo é fornecer insights práticos para o usuário.
         `;
         
@@ -276,6 +332,15 @@ const App: React.FC = () => {
           { role: 'user', parts: [{ text: prompt }] },
           { role: 'model', parts: [{ text }] }
         ]);
+
+        const suggestions = parseSuggestions(text);
+        if (suggestions && suggestions.valores) {
+          setSuggestedInputs(suggestions.valores);
+          setShowSuggestion(true);
+        } else {
+          setSuggestedInputs(null);
+          setShowSuggestion(false);
+        }
 
     } catch (e) {
         console.error(e);
@@ -341,6 +406,16 @@ const App: React.FC = () => {
           { role: 'model', parts: [{ text }] }
         ]);
         setFollowUp('');
+
+        const suggestions = parseSuggestions(text);
+        if (suggestions && suggestions.valores) {
+          setSuggestedInputs(suggestions.valores);
+          setShowSuggestion(true);
+        } else {
+          setSuggestedInputs(null);
+          setShowSuggestion(false);
+        }
+
     } catch (e) {
         console.error(e);
         const errorMsg = "\n\n---\nOcorreu um erro ao processar sua pergunta.";
@@ -526,6 +601,9 @@ const App: React.FC = () => {
             followUp={followUp}
             onFollowUpChange={(e) => setFollowUp(e.target.value)}
             onSendFollowUp={handleFollowUp}
+            showSuggestion={showSuggestion}
+            onApplySuggestion={applySuggestions}
+            suggestedInputs={suggestedInputs}
           />
 
           {results.length > 0 && (

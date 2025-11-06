@@ -7,6 +7,9 @@ interface GeminiAnalysisProps {
     followUp: string;
     onFollowUpChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onSendFollowUp: (e: React.FormEvent) => void;
+    showSuggestion?: boolean;
+    onApplySuggestion?: () => void;
+    suggestedInputs?: any;
 }
 
 const SpinnerIcon: React.FC = () => (
@@ -33,7 +36,17 @@ const SkeletonLoader: React.FC = () => (
 );
 
 
-export const GeminiAnalysis: React.FC<GeminiAnalysisProps> = ({ analysis, isAnalyzing, error, followUp, onFollowUpChange, onSendFollowUp }) => {
+export const GeminiAnalysis: React.FC<GeminiAnalysisProps> = ({ 
+  analysis, 
+  isAnalyzing, 
+  error, 
+  followUp, 
+  onFollowUpChange, 
+  onSendFollowUp,
+  showSuggestion = false,
+  onApplySuggestion,
+  suggestedInputs
+}) => {
   
   const renderContent = () => {
     if (isAnalyzing && !analysis) {
@@ -70,6 +83,67 @@ export const GeminiAnalysis: React.FC<GeminiAnalysisProps> = ({ analysis, isAnal
       <div className="prose prose-slate prose-invert max-w-none">
         {renderContent()}
       </div>
+      
+      {showSuggestion && onApplySuggestion && suggestedInputs && (
+        <div className="mt-6 bg-gradient-to-r from-teal-900/50 to-emerald-900/50 border-2 border-teal-500 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-teal-400 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            <div className="flex-grow">
+              <h3 className="text-lg font-semibold text-teal-300 mb-2">💡 Sugestões de Otimização Detectadas!</h3>
+              <p className="text-slate-300 text-sm mb-3">
+                A IA analisou seu cenário e preparou valores otimizados para melhorar seus resultados.
+              </p>
+              
+              {Object.keys(suggestedInputs).length > 0 && (
+                <div className="mb-4 bg-slate-800/50 rounded-lg p-3 border border-slate-700">
+                  <p className="text-xs text-slate-400 mb-2 font-semibold uppercase">Valores que serão alterados:</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {suggestedInputs.costPerPhone && (
+                      <div className="text-slate-300">
+                        <span className="text-slate-500">Custo por Celular:</span> <span className="text-teal-400 font-semibold">R$ {suggestedInputs.costPerPhone}</span>
+                      </div>
+                    )}
+                    {suggestedInputs.entryAmount && (
+                      <div className="text-slate-300">
+                        <span className="text-slate-500">Entrada:</span> <span className="text-teal-400 font-semibold">R$ {suggestedInputs.entryAmount}</span>
+                      </div>
+                    )}
+                    {suggestedInputs.installmentAmount && (
+                      <div className="text-slate-300">
+                        <span className="text-slate-500">Valor Parcela:</span> <span className="text-teal-400 font-semibold">R$ {suggestedInputs.installmentAmount}</span>
+                      </div>
+                    )}
+                    {suggestedInputs.extraMonthly && (
+                      <div className="text-slate-300">
+                        <span className="text-slate-500">Aporte Extra:</span> <span className="text-teal-400 font-semibold">R$ {suggestedInputs.extraMonthly}</span>
+                      </div>
+                    )}
+                    {suggestedInputs.withdrawalPerPhones && (
+                      <div className="text-slate-300">
+                        <span className="text-slate-500">Retirada a cada:</span> <span className="text-teal-400 font-semibold">{suggestedInputs.withdrawalPerPhones} ativos</span>
+                      </div>
+                    )}
+                    {suggestedInputs.withdrawalAmount && (
+                      <div className="text-slate-300">
+                        <span className="text-slate-500">Valor Retirada:</span> <span className="text-teal-400 font-semibold">R$ {suggestedInputs.withdrawalAmount}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <button
+                onClick={onApplySuggestion}
+                className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-bold py-2.5 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                ✨ Aplicar Sugestões Automaticamente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {analysis && !error && (
         <form onSubmit={onSendFollowUp} className="mt-6 flex gap-2">
