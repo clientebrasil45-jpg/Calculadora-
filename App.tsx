@@ -186,25 +186,29 @@ const App: React.FC = () => {
     setChatHistory([]);
 
     try {
+        const withdrawalInfo = currentInputs.withdrawalPerPhones > 0 && currentInputs.withdrawalAmount > 0
+          ? `\n        - IMPORTANTE: A simulação inclui retiradas mensais automáticas. A cada ${currentInputs.withdrawalPerPhones} celulares ativos (com parcelas sendo pagas), são retirados ${currentInputs.withdrawalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} por mês do caixa. Total retirado no período: ${summaryData.totalWithdrawals.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.`
+          : '';
+        
         const prompt = `
         Você é um consultor financeiro especialista em pequenos negócios e análise de projeções de crescimento.
         Analise a seguinte simulação de um negócio de venda de celulares.
 
         **Dados da Simulação:**
         - Configuração Inicial: ${JSON.stringify(currentInputs, null, 2)}
-        - Resumo Final da Simulação (${currentInputs.months} meses): ${JSON.stringify(summaryData, null, 2)}
+        - Resumo Final da Simulação (${currentInputs.months} meses): ${JSON.stringify(summaryData, null, 2)}${withdrawalInfo}
 
         **Sua Tarefa:**
         Forneça uma análise concisa em 3 seções, usando texto simples com quebras de linha para formatação. Não use markdown como **negrito** ou *itálico*.
 
         **1. Comportamento e Trajetória:**
-        Descreva a curva de crescimento. O crescimento é rápido, lento, constante? Existem pontos de virada ou estagnação evidentes?
+        Descreva a curva de crescimento. O crescimento é rápido, lento, constante? Existem pontos de virada ou estagnação evidentes?${withdrawalInfo ? ' Mencione o impacto das retiradas mensais automáticas no crescimento.' : ''}
 
         **2. Pontos Fortes e Oportunidades:**
-        Identifique os principais motores de crescimento na simulação (ex: aporte mensal alto, boa margem). Sugira 1 ou 2 oportunidades claras de otimização (ex: "Reduzir o custo por celular em X% poderia acelerar o lucro em Y%").
+        Identifique os principais motores de crescimento na simulação (ex: aporte mensal alto, boa margem). Sugira 1 ou 2 oportunidades claras de otimização (ex: "Reduzir o custo por celular em X% poderia acelerar o lucro em Y%").${withdrawalInfo ? ' Se houver retiradas configuradas, avalie se o valor/frequência está adequado.' : ''}
 
         **3. Riscos e Alertas:**
-        Aponte as principais vulnerabilidades do modelo de negócio simulado (ex: "A alta dependência do aporte mensal é um risco. Se ele falhar, o crescimento pode estagnar.").
+        Aponte as principais vulnerabilidades do modelo de negócio simulado (ex: "A alta dependência do aporte mensal é um risco. Se ele falhar, o crescimento pode estagnar.").${withdrawalInfo ? ' Avalie se as retiradas mensais estão prejudicando o potencial de crescimento.' : ''}
 
         Use uma linguagem clara, direta e encorajadora. O objetivo é fornecer insights práticos para o usuário.
         `;
@@ -466,6 +470,12 @@ const App: React.FC = () => {
                 <SummaryCard title="Receita Total" value={formatCurrency(summary.totalRevenue)} />
                 {summary.totalWithdrawals > 0 && (
                   <SummaryCard title="Total Retirado" value={formatCurrency(summary.totalWithdrawals)} />
+                )}
+                {inputs.withdrawalPerPhones > 0 && inputs.withdrawalAmount > 0 && (
+                  <SummaryCard 
+                    title="Regra de Retirada" 
+                    value={`A cada ${inputs.withdrawalPerPhones} ativos: ${formatCurrency(inputs.withdrawalAmount)}/mês`} 
+                  />
                 )}
                 <SummaryCard title="Ticket Médio" value={formatCurrency(summary.averageTicket)} />
               </div>
