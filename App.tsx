@@ -8,24 +8,47 @@ import { GeminiAnalysis } from './components/GeminiAnalysis.tsx';
 import type { Inputs, MonthlyResult, SummaryData } from './types.ts';
 
 const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyResult[], summaryData: SummaryData } => {
+  const sanitizeNumber = (val: any): number => {
+    if (val === '' || val === '-' || val === null || val === undefined) return 0;
+    const num = Number(val);
+    return isNaN(num) ? 0 : num;
+  };
+
   const {
-    initialCapital,
-    costPerPhone,
-    initialPhones,
-    entryAmount,
-    installmentCount,
-    installmentAmount,
-    extraMonthly,
-    fixedMonthlyCosts,
-    withdrawalPerPhones,
-    withdrawalAmount,
+    initialCapital = 0,
+    costPerPhone = 0,
+    initialPhones = 0,
+    entryAmount = 0,
+    installmentCount = 0,
+    installmentAmount = 0,
+    extraMonthly = 0,
+    fixedMonthlyCosts = 0,
+    withdrawalPerPhones = 0,
+    withdrawalAmount = 0,
     reinvestMode,
-    fixedReinvest,
-    percentReinvest,
-    months,
+    fixedReinvest = 0,
+    percentReinvest = 0,
+    months = 0,
   } = currentInputs;
 
-  let cash = initialCapital;
+  const inputs = {
+    initialCapital: sanitizeNumber(initialCapital),
+    costPerPhone: sanitizeNumber(costPerPhone),
+    initialPhones: sanitizeNumber(initialPhones),
+    entryAmount: sanitizeNumber(entryAmount),
+    installmentCount: sanitizeNumber(installmentCount),
+    installmentAmount: sanitizeNumber(installmentAmount),
+    extraMonthly: sanitizeNumber(extraMonthly),
+    fixedMonthlyCosts: sanitizeNumber(fixedMonthlyCosts),
+    withdrawalPerPhones: sanitizeNumber(withdrawalPerPhones),
+    withdrawalAmount: sanitizeNumber(withdrawalAmount),
+    reinvestMode,
+    fixedReinvest: sanitizeNumber(fixedReinvest),
+    percentReinvest: sanitizeNumber(percentReinvest),
+    months: sanitizeNumber(months),
+  };
+
+  let cash = inputs.initialCapital;
   const receivables: { monthDue: number, amount: number, phoneId: number }[] = [];
   const monthlyResults: MonthlyResult[] = [];
   let totalRevenue = 0;
@@ -39,13 +62,13 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
     for (let i = 0; i < count; i++) {
       phoneIdCounter++;
       const currentPhoneId = phoneIdCounter;
-      cash += entryAmount;
-      totalRevenue += entryAmount;
+      cash += inputs.entryAmount;
+      totalRevenue += inputs.entryAmount;
 
-      if (installmentCount > 0) {
-        activeSales.set(currentPhoneId, { remainingInstallments: installmentCount });
-        for (let j = 1; j <= installmentCount; j++) {
-          receivables.push({ monthDue: currentMonth + j, amount: installmentAmount, phoneId: currentPhoneId });
+      if (inputs.installmentCount > 0) {
+        activeSales.set(currentPhoneId, { remainingInstallments: inputs.installmentCount });
+        for (let j = 1; j <= inputs.installmentCount; j++) {
+          receivables.push({ monthDue: currentMonth + j, amount: inputs.installmentAmount, phoneId: currentPhoneId });
         }
       }
       
@@ -53,18 +76,18 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
     }
   };
 
-  if (initialPhones > 0 && costPerPhone > 0) {
-    const maxAffordable = Math.floor(cash / costPerPhone);
-    const toBuy = Math.min(initialPhones, maxAffordable);
+  if (inputs.initialPhones > 0 && inputs.costPerPhone > 0) {
+    const maxAffordable = Math.floor(cash / inputs.costPerPhone);
+    const toBuy = Math.min(inputs.initialPhones, maxAffordable);
     if (toBuy > 0) {
-      const initialPurchaseCost = toBuy * costPerPhone;
+      const initialPurchaseCost = toBuy * inputs.costPerPhone;
       cash -= initialPurchaseCost;
       totalCost += initialPurchaseCost;
       sellPhones(toBuy, 0);
     }
   }
 
-  for (let m = 1; m <= months; m++) {
+  for (let m = 1; m <= inputs.months; m++) {
     let collected = 0;
     for (let i = receivables.length - 1; i >= 0; i--) {
       if (receivables[i].monthDue === m) {
@@ -83,29 +106,29 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
     }
     totalRevenue += collected;
     cash += collected;
-    cash += extraMonthly;
-    cash -= fixedMonthlyCosts;
+    cash += inputs.extraMonthly;
+    cash -= inputs.fixedMonthlyCosts;
     
     const phonesBeingPaidNow = activeSales.size;
     let monthlyWithdrawal = 0;
-    if (withdrawalPerPhones > 0 && withdrawalAmount > 0 && phonesBeingPaidNow > 0) {
-      const phoneBlocks = Math.floor(phonesBeingPaidNow / withdrawalPerPhones);
-      monthlyWithdrawal = phoneBlocks * withdrawalAmount;
+    if (inputs.withdrawalPerPhones > 0 && inputs.withdrawalAmount > 0 && phonesBeingPaidNow > 0) {
+      const phoneBlocks = Math.floor(phonesBeingPaidNow / inputs.withdrawalPerPhones);
+      monthlyWithdrawal = phoneBlocks * inputs.withdrawalAmount;
       cash -= monthlyWithdrawal;
       totalWithdrawals += monthlyWithdrawal;
     }
 
     let reinvestAmount = 0;
-    if (reinvestMode === 'all') {
+    if (inputs.reinvestMode === 'all') {
       reinvestAmount = cash;
-    } else if (reinvestMode === 'fixed') {
-      reinvestAmount = Math.min(fixedReinvest, cash);
-    } else if (reinvestMode === 'percent') {
-      reinvestAmount = Math.floor((percentReinvest / 100) * cash);
+    } else if (inputs.reinvestMode === 'fixed') {
+      reinvestAmount = Math.min(inputs.fixedReinvest, cash);
+    } else if (inputs.reinvestMode === 'percent') {
+      reinvestAmount = Math.floor((inputs.percentReinvest / 100) * cash);
     }
 
-    const phonesCanBuy = costPerPhone > 0 ? Math.floor(reinvestAmount / costPerPhone) : 0;
-    const actuallySpend = phonesCanBuy * costPerPhone;
+    const phonesCanBuy = inputs.costPerPhone > 0 ? Math.floor(reinvestAmount / inputs.costPerPhone) : 0;
+    const actuallySpend = phonesCanBuy * inputs.costPerPhone;
 
     if (phonesCanBuy > 0) {
       cash -= actuallySpend;
@@ -113,7 +136,7 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
       sellPhones(phonesCanBuy, m);
     }
 
-    const cumulativeProfit = totalRevenue - totalCost - (fixedMonthlyCosts * m) - totalWithdrawals;
+    const cumulativeProfit = totalRevenue - totalCost - (inputs.fixedMonthlyCosts * m) - totalWithdrawals;
 
     let growthRate = 'N/A';
     if (m > 1 && monthlyResults.length > 0) {
@@ -132,7 +155,7 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
     monthlyResults.push({
       month: m,
       collected,
-      extraMonthly,
+      extraMonthly: inputs.extraMonthly,
       withdrawal: monthlyWithdrawal,
       reinvestUsed: actuallySpend,
       phonesBoughtThisMonth: phonesCanBuy,
@@ -147,7 +170,7 @@ const calculateSimulation = (currentInputs: Inputs): { monthlyResults: MonthlyRe
   
   const phonesBeingPaid = activeSales.size;
   const phonesPaidOff = totalPhonesBought - phonesBeingPaid;
-  const finalTotalCost = totalCost + (fixedMonthlyCosts * months);
+  const finalTotalCost = totalCost + (inputs.fixedMonthlyCosts * inputs.months);
 
   const summaryData = {
     totalPhonesBought,
@@ -349,11 +372,25 @@ const App: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value, type } = e.target;
-    const numValue = Number(value);
-    setInputs(prev => ({
-      ...prev,
-      [id]: type === 'number' ? (isNaN(numValue) ? 0 : numValue) : value,
-    } as Inputs));
+    if (type === 'number') {
+      if (value === '' || value === '-') {
+        setInputs(prev => ({
+          ...prev,
+          [id]: value,
+        } as any));
+      } else {
+        const numValue = Number(value);
+        setInputs(prev => ({
+          ...prev,
+          [id]: isNaN(numValue) ? 0 : numValue,
+        } as Inputs));
+      }
+    } else {
+      setInputs(prev => ({
+        ...prev,
+        [id]: value,
+      } as Inputs));
+    }
   };
 
   const downloadCSV = () => {
